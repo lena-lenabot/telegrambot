@@ -1,2 +1,4 @@
 python-dotenv
-pytelegrambotapi
+pyTelegramBotAPI
+gTTS
+openai

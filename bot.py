@@ -1,62 +1,42 @@
-from dotenv import load_dotenv
 import os
-import telebot  # Вернём этот импорт обратно!
+from dotenv import load_dotenv
+import telebot
+from gtts import gTTS
+from io import BytesIO
+import openai
 
-# Загружаем переменные окружения из .env
+# Загружаем переменные окружения
 load_dotenv()
-
-# Берём API-ключ из .env
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Вставь сюда свой токен от BotFather
-TOKEN = "7597877063:AAE_qD3MKYSmecAG2M_MVPzGSAD4VDqj4oU"
+# Настраиваем OpenAI
+openai.api_key = OPENAI_API_KEY
 
-
-
-# Создаем экземпляр бота
+# Создаём бота
 bot = telebot.TeleBot(TOKEN)
 
-# Проверочная команда /start
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(message.chat.id, 'Привет! Я твой личный помощник и психолог 😊')
-from dotenv import load_dotenv
-import os
-import telebot
-
-# Загружаем переменные из .env
-load_dotenv()
-
-# Берем токен
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-# Создаем объект бота
-bot = telebot.TeleBot(TOKEN)
-
-# Обрабатываем любое сообщение
+# Обрабатываем все входящие сообщения
 @bot.message_handler(func=lambda message: True)
-def reply_to_message(message):
-    bot.send_message(message.chat.id, "Привет, Лена! 🌷 Я уже работаю!")
+def handle_message(message):
+    user_input = message.text
 
-# Запускаем бота
-bot.polling()
-from dotenv import load_dotenv
-import os
-import telebot
+    # Получаем ответ от OpenAI
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": user_input}]
+    )
+    reply_text = response["choices"][0]["message"]["content"]
 
-# Загружаем переменные из .env
-load_dotenv()
+    # Отправляем текстовый ответ
+    bot.send_message(message.chat.id, reply_text)
 
-# Берем токен
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-# Создаем объект бота
-bot = telebot.TeleBot(TOKEN)
-
-# Обрабатываем любое сообщение
-@bot.message_handler(func=lambda message: True)
-def reply_to_message(message):
-    bot.send_message(message.chat.id, "Привет, Лена! 🌷 Я уже работаю!")
+    # Генерируем голосовой ответ
+    tts = gTTS(text=reply_text, lang="ru")
+    voice = BytesIO()
+    tts.write_to_fp(voice)
+    voice.seek(0)
+    bot.send_voice(message.chat.id, voice)
 
 # Запускаем бота
 bot.polling()
